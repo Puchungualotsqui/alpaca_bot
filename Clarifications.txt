@@ -1,0 +1,1 @@
+The algo should make the predictions the same day it will trade them
