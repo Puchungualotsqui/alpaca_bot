@@ -51,7 +51,7 @@ def get_ohlcv(symbol: str, start: date, end: date, API_KEY: str, API_SECRET: str
 def get_last_trading_day(api_key, api_secret):
     # Look back 10 calendar days to ensure we cover holidays/weekends
     start_date = (date.today() - timedelta(days=10)).isoformat()
-    end_date = date.today().isoformat()
+    end_date = (date.today() - timedelta(days=1)).isoformat() #It should be executed the same day that the trades will be done
 
     url = f"https://paper-api.alpaca.markets/v2/calendar?start={start_date}&end={end_date}"
     headers = {
@@ -70,7 +70,3 @@ def get_last_trading_day(api_key, api_secret):
 
     last_trading_day = calendar[-1]["date"]
     return last_trading_day
-
-def get_column_name(column_map: dict[str, str], searched: str) -> str:
-    col_name = column_map.get(searched, searched) if column_map else searched
-    return col_name
