@@ -1,1 +1,2 @@
 The algo should make the predictions the same day it will trade them
+For the execution of the algo the recommended order type is opg
