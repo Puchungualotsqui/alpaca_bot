@@ -1,98 +1,86 @@
-# GRU Stock Predictor & Backtesting Pipeline
+# Alpaca GRU Deployment Bot
 
-This project is a **complete GRU-based stock prediction and backtesting pipeline** using **Yahoo Finance data**.  
-It includes data preprocessing, feature engineering, model training, fine-tuning, and threshold-based backtesting with performance visualization.
-
----
-
-## What It Does
-
-- Pulls historical OHLCV data using `yfinance`
-- Computes custom features: RSI, MACD, Heikin-Ashi RSI, Bollinger Bands, UpDown trends, and continuations
-- Prepares sequences for GRU time-series prediction
-- Trains and fine-tunes a Keras GRU model with a custom **conservative loss function**
-- Performs threshold-based backtesting
-- Saves predictions, metrics, and plots to the `./Infos/{TICKER}` folder
+This project automates a **daily stock trading strategy** using **GRU-predicted highs** and **Alpaca API**.  
+It fetches historical stock data, predicts the next day's high, and places buy/sell orders on the **market open** and **target price**.
 
 ---
 
-## Directory Structure
+## How It Works
 
-```
-├── dataPulling.py # Download OHLCV data from Yahoo Finance
-├── preProcess.py # Feature engineering and scaling
-├── modelFunctions.py # GRU architecture and training utils
-├── train_new_model.py # Train from scratch
-├── fine_tune.py # Fine-tune existing model
-├── complete_backtest.py # Full backtesting script
-├── simple_backtest.py # Threshold-only backtest
-├── backtesting.py # Core backtesting logic
-├── graphing.py # Training & result visualizations
-├── Infos/ # Output directory for models & plots
-```
+1. **Before Market Open (`closed_market.py`)**:
+   - Closes all current positions.
+   - Predicts next-day high return for a list of tickers.
+   - Selects the most promising ticker (highest predicted return over threshold).
+   - Buys that stock using available cash at market open (`OPG` order).
 
+2. **After Market Open (`open_market.py`)**:
+   - Places a **limit sell order** at the predicted high.
 
 ---
 
-## Requirements
+## Project Structure
 
-Install required packages:
+| File                | Purpose                                        |
+|---------------------|------------------------------------------------|
+| `closed_market.py`  | Executes before market opens (buy logic)      |
+| `open_market.py`    | Executes after market opens (sell logic)      |
+| `trade.py`          | Closes all current positions                  |
+| `utils.py`          | Prediction logic + Alpaca helpers             |
+| `alpacaWrappers.py` | Order, data, and account wrappers for Alpaca  |
+| `tickers.json`      | List of tickers and threshold values          |
+| `models/`           | Contains saved models and scalers             |
 
-```
-pip install yfinance joblib matplotlib scikit-learn tensorflow
-```
-## How to Use
+---
 
-### Train a New GRU Model
+## ⚙️ Environment Variables
 
-```bash
-python train_new_model.py TICKER
-```
+Create a `.env` file in your root directory:
 
-- Trains a model from scratch using Yahoo Finance data
-- Saves model, scaler, metrics, and performance plots in ./Infos/{TICKER}/
-
-### Fine-Tune an Existing Model
-```
-python fine_tune.py TICKER ./Infos/{TICKER}/model_{TICKER}.keras ./Infos/{TICKER}/scaler_{TICKER}.pkl
-```
-
-- Further trains a previously saved model using a lower learning rate
-- Uses early stopping and saves improved weights and plots
-
-### Run Full Backtest
-```
-python complete_backtest.py TICKER [MODEL_PATH] [SCALER_PATH] [THRESHOLD]
-```
-Optional arguments:
-- MODEL_PATH (default: ./Infos/{TICKER}/model_{TICKER}.keras)
-- SCALER_PATH (default or fallback: ./Infos/scaler.pkl)
-- THRESHOLD (e.g. 0.9) for fixed quantile threshold
-
-### Simple Backtest (with custom threshold only)
-```
-python simple_backtest.py TICKER 0.85
+```env
+ALPACA_API_KEY=your_api_key
+ALPACA_SECRET_KEY=your_secret_key
 ```
 
-## Outputs (per ticker)
-All results are saved under the folder: ./Infos/{TICKER}/
+You can use Alpaca's paper trading credentials for testing.
 
-| File                              | Description                                      |
-| --------------------------------- | ------------------------------------------------ |
-| `model_{TICKER}.keras`            | Trained GRU model                                |
-| `scaler_{TICKER}.pkl`             | Scaler used for feature normalization            |
-| `info_{TICKER}.json`              | Backtesting metrics and settings                 |
-| `training_{TICKER}.png`           | Training & validation loss/MAE plot              |
-| `balance_{TICKER}.png`            | Simulated equity curve                           |
-| `threshold_{metric}_{TICKER}.png` | Performance by quantile (return, hit rate, etc.) |
+## Setup
 
-## Model Overview
-- Architecture: 3-layer GRU with normalization, Mish activations, and dropout
-- Input: 90-day sequences of technical indicators and trends
-- Output: Predicted next-day high return (as %)
-- Loss Function: Custom Conservative Loss
-  - Penalizes overestimation more than underestimation
-  - Helps avoid false positives in trading decisions
+```
+pip install -r requirements.txt
+```
+
+Packages:
+```
+alpaca-trade-api
+pandas
+pandas_market_calendars
+python-dotenv
+tensorflow
+joblib
+```
+
+## Model Predictions
+Each stock in tickers.json must have:
+```
+{
+  "SPY": {
+    "threshold": 0.85
+  },
+  "QQQ": {
+    "threshold": 0.90
+  }
+}
+```
+- Models should be saved as: ./models/model_{TICKER}.keras
+- Scalers as: ./models/scaler_{TICKER}.pkl or fallback to scaler.pkl
+## Trading Logic
+- Buy: Submits MarketOrder with TimeInForce.OPG at open.
+- Sell: Submits LimitOrder with TimeInForce.DAY at predicted high price.
+
+## Notes
+- Uses IEX feed for historical data.
+- Automatically validates trading calendar (NYSE).
+- Logs last selected stock in last_selection.json.
 
 ## License
 
