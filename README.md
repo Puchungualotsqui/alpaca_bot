@@ -32,7 +32,7 @@ It fetches historical stock data, predicts the next day's high, and places buy/s
 
 ---
 
-## ⚙️ Environment Variables
+## Environment Variables
 
 Create a `.env` file in your root directory:
 
