@@ -3,6 +3,12 @@ import datetime
 from alpacaWrappers import *
 import pytz
 import os
+import logging
+
+# Suppress TensorFlow logs
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+
 from preProcess import *
 from alpaca.trading.client import TradingClient
 from datetime import date, timedelta
